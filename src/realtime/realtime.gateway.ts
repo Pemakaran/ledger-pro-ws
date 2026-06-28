@@ -10,6 +10,7 @@ import type { Namespace } from 'socket.io';
 import { JwksVerifierService } from '@common/auth/jwks-verifier.service';
 import { createWsAuthMiddleware } from '@common/auth/ws-auth.middleware';
 import type { AuthedSocket } from '@common/auth/authed-socket.type';
+import type { RealtimeNamespace } from '@common/contract/realtime-event.type';
 
 /**
  * The `/notifications` namespace: per-user notifications + system-alert
@@ -51,5 +52,17 @@ export class RealtimeGateway
     this.logger.debug(
       `Disconnected ${client.id} (user:${client.data.user?.sub ?? '?'})`,
     );
+  }
+
+  /**
+   * Resolve a socket.io namespace by name so the Redis subscriber can fan out
+   * to it. Reaches the root server via the gateway's own namespace; returns
+   * null until the websocket server is initialized.
+   */
+  namespaceFor(name: RealtimeNamespace): Namespace | null {
+    if (!this.server) {
+      return null;
+    }
+    return this.server.server.of(name);
   }
 }
