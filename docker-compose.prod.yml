@@ -1,0 +1,47 @@
+# ╔═══════════════════════════════════════════════════════════════════╗
+# ║  LedgerPro Realtime — Production compose (DigitalOcean droplet)    ║
+# ╚═══════════════════════════════════════════════════════════════════╝
+#
+# Runs the realtime WebSocket service from its GHCR image (no build here). It
+# shares the EXTERNAL `ledgerpro-network` with the main backend stack so it can
+#   (a) verify handshake JWTs against the backend's JWKS, reached internally at
+#       http://backend:3000/.well-known/jwks.json (never the public api.<domain>);
+#   (b) SUBSCRIBE to the shared `redis` (which lives in the backend prod stack).
+#
+# Create the shared network once (also done idempotently by the deploy job):
+#     docker network create ledgerpro-network
+#
+# All config comes from ./.env (chmod 600, never committed); see
+# .env.production.example. Deploy is driven by
+# .github/workflows/deploy-production.yml, which on the droplet runs:
+#     docker compose -f docker-compose.prod.yml pull && up -d
+# (IMAGE_TAG is exported by the deploy job to pin the freshly-built image.)
+
+services:
+  realtime:
+    image: ${REALTIME_IMAGE:-ghcr.io/anpu21/ledgerpro-realtime}:${IMAGE_TAG:-latest}
+    container_name: ledgerpro-realtime
+    env_file: .env
+    ports:
+      # Bind to localhost only — nginx terminates TLS on 443 (realtime.<domain>)
+      # and forwards to 127.0.0.1:3001 with the WebSocket upgrade headers.
+      - "127.0.0.1:3001:3001"
+    restart: always
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3001/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks: [ledgerpro-network]
+
+networks:
+  # Shared with the backend prod stack (which owns redis + the backend service).
+  ledgerpro-network:
+    external: true
