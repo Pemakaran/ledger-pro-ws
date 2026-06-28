@@ -1,0 +1,43 @@
+# Local dev stack for the realtime service: Redis + the service in watch mode.
+# The main LedgerPro backend (JWKS endpoint) is expected to run separately on
+# :3000 — reached here via host.docker.internal. For full integration against
+# the backend's Docker network, attach this service to `ledgerpro-network`
+# instead (see docker-compose.prod.yml, Phase 3).
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: ledgerpro-realtime-redis
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6379:6379'
+    volumes:
+      - realtime-redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  realtime:
+    build:
+      context: .
+      target: development
+    container_name: ledgerpro-realtime
+    env_file: .env
+    environment:
+      # Override host-oriented .env values for in-network container runs.
+      REDIS_URL: redis://redis:6379
+      JWKS_URI: http://host.docker.internal:3000/.well-known/jwks.json
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '3001:3001'
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  realtime-redisdata:
