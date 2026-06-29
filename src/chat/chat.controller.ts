@@ -81,6 +81,14 @@ export class ChatController {
     );
   }
 
+  @Get('conversations/:id/participants')
+  participants(
+    @Req() req: AuthedRequest,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.chat.getParticipants(req.user.sub, id);
+  }
+
   @Post('conversations/:id/read')
   markRead(@Req() req: AuthedRequest, @Param('id', ParseUUIDPipe) id: string) {
     return this.chat.markRead(req.user.sub, id);

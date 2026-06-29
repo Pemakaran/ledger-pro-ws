@@ -164,6 +164,11 @@ export class ChatRepository {
     await this.participants.delete({ conversationId });
   }
 
+  /** Participants of a conversation (with their lastReadAt read cursors). */
+  listParticipants(conversationId: string): Promise<ConversationParticipant[]> {
+    return this.participants.find({ where: { conversationId } });
+  }
+
   /** Conversations the user belongs to, most-recently-joined first. */
   async findConversationsForUser(userId: string): Promise<Conversation[]> {
     const memberships = await this.participants.find({

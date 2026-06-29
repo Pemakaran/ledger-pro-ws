@@ -104,8 +104,19 @@ export class ChatService {
     return this.repo.saveMessage(conversationId, actorId, body, attachments);
   }
 
-  async markRead(actorId: string, conversationId: string): Promise<void> {
+  async markRead(actorId: string, conversationId: string): Promise<Date> {
     await this.assertParticipant(conversationId, actorId);
-    await this.repo.markRead(conversationId, actorId, new Date());
+    const at = new Date();
+    await this.repo.markRead(conversationId, actorId, at);
+    return at;
+  }
+
+  /** Participants of a conversation with their read cursors (for read receipts). */
+  async getParticipants(
+    actorId: string,
+    conversationId: string,
+  ): Promise<ConversationParticipant[]> {
+    await this.assertParticipant(conversationId, actorId);
+    return this.repo.listParticipants(conversationId);
   }
 }

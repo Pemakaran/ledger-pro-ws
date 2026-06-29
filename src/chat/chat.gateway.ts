@@ -93,10 +93,15 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection {
     @MessageBody() data: unknown,
   ): Promise<void> {
     const { conversationId } = conversationRefSchema.parse(data);
-    await this.chat.markRead(client.data.user.sub, conversationId);
-    client
-      .to(roomFor(conversationId))
-      .emit('chat:read', { conversationId, userId: client.data.user.sub });
+    const lastReadAt = await this.chat.markRead(
+      client.data.user.sub,
+      conversationId,
+    );
+    client.to(roomFor(conversationId)).emit('chat:read', {
+      conversationId,
+      userId: client.data.user.sub,
+      lastReadAt: lastReadAt.toISOString(),
+    });
   }
 
   /**
