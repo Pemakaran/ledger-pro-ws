@@ -8,5 +8,10 @@ export interface AuthedUser {
   branchId: string | null;
 }
 
-/** A socket whose handshake has passed the JWKS auth middleware. */
-export type AuthedSocket = Socket & { data: { user: AuthedUser } };
+/**
+ * A socket whose handshake has passed the JWKS auth middleware: the verified
+ * user plus the raw access token (reused for backend membership checks).
+ */
+export type AuthedSocket = Socket & {
+  data: { user: AuthedUser; token: string };
+};

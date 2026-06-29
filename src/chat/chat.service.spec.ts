@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ChatService } from '@chat/chat.service';
 import type { ChatRepository } from '@chat/chat.repository';
-import type { GroupMembershipVerifier } from '@chat/group-membership.verifier';
+import type { GroupMembershipVerifier } from '@common/membership/group-membership.verifier';
 import type { ConversationParticipant } from '@chat/entities/conversation-participant.entity';
 import type { AttachmentInput } from '@chat/schema/attachment.schema';
 

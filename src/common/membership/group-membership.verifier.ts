@@ -6,10 +6,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 
 /**
- * Authorizes group chat by asking the backend whether the caller belongs to the
- * customer-group. Reuses the existing membership-gated endpoint
+ * Authorizes group access by asking the backend whether the caller belongs to
+ * the customer-group. Reuses the existing membership-gated endpoint
  * `GET /api/v1/customer-groups/:id` (200 for members, 403 for non-members) — so
- * group chat needs NO new backend authorization surface.
+ * neither group chat nor the group cart-sync room needs a new backend surface.
  *
  * A backend outage must never be read as "not a member" (that would silently
  * lock everyone out or, worse, mask a misconfig), so anything other than a clean

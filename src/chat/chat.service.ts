@@ -4,7 +4,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { ChatRepository } from '@chat/chat.repository';
-import { GroupMembershipVerifier } from '@chat/group-membership.verifier';
+import { GroupMembershipVerifier } from '@common/membership/group-membership.verifier';
 import { Conversation } from '@chat/entities/conversation.entity';
 import { ConversationParticipant } from '@chat/entities/conversation-participant.entity';
 import { Message } from '@chat/entities/message.entity';

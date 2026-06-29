@@ -11,8 +11,9 @@ const logger = new Logger('WsAuth');
 /**
  * socket.io namespace middleware that authenticates the handshake. Reads the
  * access token from `handshake.auth.token` (preferred) or the Authorization
- * header, verifies it against the backend JWKS, and stashes the user on
- * `socket.data.user`. A rejected handshake never reaches a gateway — the client
+ * header, verifies it against the backend JWKS, and stashes the user + the raw
+ * token on `socket.data` (the token is reused for backend membership checks on
+ * room joins). A rejected handshake never reaches a gateway — the client
  * receives a `connect_error`.
  */
 export function createWsAuthMiddleware(
@@ -28,7 +29,9 @@ export function createWsAuthMiddleware(
     verifier
       .verifyAccessToken(token)
       .then((user) => {
-        (socket as AuthedSocket).data.user = user;
+        const authed = socket as AuthedSocket;
+        authed.data.user = user;
+        authed.data.token = token;
         next();
       })
       .catch((err: unknown) => {

@@ -1,16 +1,20 @@
-import { Logger } from '@nestjs/common';
+import { ForbiddenException, Logger } from '@nestjs/common';
 import {
+  ConnectedSocket,
+  MessageBody,
   type OnGatewayConnection,
   type OnGatewayDisconnect,
   type OnGatewayInit,
+  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Namespace } from 'socket.io';
 import { JwksVerifierService } from '@common/auth/jwks-verifier.service';
+import { GroupMembershipVerifier } from '@common/membership/group-membership.verifier';
 import { createWsAuthMiddleware } from '@common/auth/ws-auth.middleware';
 import type { AuthedSocket } from '@common/auth/authed-socket.type';
-import type { RealtimeNamespace } from '@common/schema';
+import { groupRoomSchema, type RealtimeNamespace } from '@common/schema';
 
 /**
  * The `/notifications` namespace: per-user notifications + system-alert
@@ -28,7 +32,10 @@ export class RealtimeGateway
   @WebSocketServer() server!: Namespace;
   private readonly logger = new Logger(RealtimeGateway.name);
 
-  constructor(private readonly verifier: JwksVerifierService) {}
+  constructor(
+    private readonly verifier: JwksVerifierService,
+    private readonly membership: GroupMembershipVerifier,
+  ) {}
 
   afterInit(): void {
     // Authenticate every handshake on this namespace before a socket connects.
@@ -52,6 +59,36 @@ export class RealtimeGateway
     this.logger.debug(
       `Disconnected ${client.id} (user:${client.data.user?.sub ?? '?'})`,
     );
+  }
+
+  /**
+   * Join a customer-group's live room so the backend's `group-cart:changed`
+   * broadcast (targeted at `group:<id>`) actually reaches this socket — nothing
+   * joined that room before, so group cart-sync delivered to no one. Membership
+   * is re-checked against the backend on every join.
+   */
+  @SubscribeMessage('group:join')
+  async onGroupJoin(
+    @ConnectedSocket() client: AuthedSocket,
+    @MessageBody() data: unknown,
+  ): Promise<{ ok: true }> {
+    const { groupId } = groupRoomSchema.parse(data);
+    const isMember = await this.membership.verify(groupId, client.data.token);
+    if (!isMember) {
+      throw new ForbiddenException('Not a member of this group');
+    }
+    await client.join(`group:${groupId}`);
+    return { ok: true };
+  }
+
+  @SubscribeMessage('group:leave')
+  async onGroupLeave(
+    @ConnectedSocket() client: AuthedSocket,
+    @MessageBody() data: unknown,
+  ): Promise<{ ok: true }> {
+    const { groupId } = groupRoomSchema.parse(data);
+    await client.leave(`group:${groupId}`);
+    return { ok: true };
   }
 
   /**
