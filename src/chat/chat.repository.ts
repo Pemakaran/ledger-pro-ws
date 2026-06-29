@@ -198,6 +198,7 @@ export class ChatRepository {
             mimeType: a.mimeType,
             fileName: a.fileName,
             size: a.size,
+            thumbnailUrl: a.thumbnailUrl ?? null,
           }),
         ),
       }),

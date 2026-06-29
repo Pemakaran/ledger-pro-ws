@@ -16,6 +16,7 @@ export const attachmentSchema = z.object({
   mimeType: z.enum(CHAT_ATTACHMENT_MIME_TYPES),
   fileName: z.string().min(1).max(255),
   size: z.number().int().positive().max(MAX_ATTACHMENT_BYTES),
+  thumbnailUrl: z.string().url().startsWith('https://').optional(),
 });
 
 export type AttachmentInput = z.infer<typeof attachmentSchema>;

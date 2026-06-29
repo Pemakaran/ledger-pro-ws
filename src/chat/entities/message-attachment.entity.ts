@@ -32,6 +32,10 @@ export class MessageAttachment {
   @Column({ type: 'varchar' })
   url!: string;
 
+  /** Page-1 preview for documents (e.g. PDFs); null when none was derived. */
+  @Column({ type: 'varchar', name: 'thumbnail_url', nullable: true })
+  thumbnailUrl!: string | null;
+
   @Column({ type: 'varchar', name: 'public_id' })
   publicId!: string;
 
