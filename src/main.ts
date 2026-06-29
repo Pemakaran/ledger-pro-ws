@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ZodValidationPipe } from 'nestjs-zod';
 import { AppModule } from '@/app.module';
 import { RedisIoAdapter } from '@realtime/realtime.adapter';
 
@@ -8,13 +9,9 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+  // Zod is the validation stack (class-validator was dropped); this validates
+  // every createZodDto body/query at the HTTP edge.
+  app.useGlobalPipes(new ZodValidationPipe());
 
   // Drain in-flight work and close Redis connections cleanly on SIGTERM/SIGINT.
   app.enableShutdownHooks();
@@ -37,7 +34,9 @@ async function bootstrap(): Promise<void> {
   await app.listen(port);
 
   logger.log(`🚀 LedgerPro Realtime listening on http://localhost:${port}`);
-  logger.log('   WebSocket namespace: /notifications (JWKS-authenticated)');
+  logger.log(
+    '   WebSocket namespaces: /notifications, /chat (JWKS-authenticated)',
+  );
 }
 
 void bootstrap();
