@@ -19,6 +19,17 @@ export const envSchema = z.object({
   JWKS_URI: z.string().optional(),
   JWT_ISSUER: z.string().optional(),
   JWT_AUDIENCE: z.string().optional(),
+
+  // Chat persistence (TypeORM/Postgres). Dev sets DB_SYNC=true; prod uses
+  // migrations with DB_SYNC unset/false. Required in prod (see validateEnv).
+  DB_HOST: z.string().optional(),
+  DB_PORT: z.string().regex(/^\d+$/, 'DB_PORT must be a number').optional(),
+  DB_USERNAME: z.string().optional(),
+  DB_PASSWORD: z.string().optional(),
+  DB_NAME: z.string().optional(),
+  DB_SYNC: z.string().optional(),
+  DB_LOGGING: z.string().optional(),
+  DB_SSL: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

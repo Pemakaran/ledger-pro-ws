@@ -5,7 +5,8 @@
       "@/*": ["src/*"],
       "@common/*": ["src/common/*"],
       "@realtime/*": ["src/realtime/*"],
-      "@health/*": ["src/health/*"]
+      "@health/*": ["src/health/*"],
+      "@chat/*": ["src/chat/*"]
     },
     "module": "commonjs",
     "moduleResolution": "node",
