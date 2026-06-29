@@ -12,6 +12,12 @@
   },
   "scripts": {
     "build": "nest build",
+    "typeorm": "node -r ts-node/register -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
+    "migration:generate": "pnpm typeorm migration:generate -d src/data-source.ts",
+    "migration:run": "pnpm typeorm migration:run -d src/data-source.ts",
+    "migration:revert": "pnpm typeorm migration:revert -d src/data-source.ts",
+    "migration:show": "pnpm typeorm migration:show -d src/data-source.ts",
+    "migration:run:prod": "node -r ./tsconfig-paths-bootstrap.js ./node_modules/typeorm/cli.js migration:run -d dist/data-source.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start -e \"node -r ./tsconfig-paths-bootstrap.js\"",
     "start:dev": "nest start --watch -e \"node -r ./tsconfig-paths-bootstrap.js\"",

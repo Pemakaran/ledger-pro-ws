@@ -113,5 +113,10 @@ jobs:
             echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
             export IMAGE_TAG
             docker compose -f docker-compose.prod.yml pull
+            # Release step: run chat-DB migrations on the freshly pulled image
+            # BEFORE rolling the service (idempotent; never on container boot).
+            docker compose -f docker-compose.prod.yml run --rm --no-deps realtime \
+              node -r ./tsconfig-paths-bootstrap.js ./node_modules/typeorm/cli.js \
+              migration:run -d dist/data-source.js
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
             docker image prune -f
