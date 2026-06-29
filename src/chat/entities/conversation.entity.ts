@@ -2,12 +2,19 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import type { ConversationType } from '@chat/enums/conversation-type.enum';
 
 @Entity('chat_conversations')
+// One chat per customer-group: a partial-unique index on reference_id for
+// 'group' conversations guards the find-or-create race in openGroupConversation.
+@Index('UQ_chat_conversations_group_reference', ['referenceId'], {
+  unique: true,
+  where: "type = 'group'",
+})
 export class Conversation {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

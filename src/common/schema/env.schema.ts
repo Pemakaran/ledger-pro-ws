@@ -20,6 +20,10 @@ export const envSchema = z.object({
   JWT_ISSUER: z.string().optional(),
   JWT_AUDIENCE: z.string().optional(),
 
+  // Backend base URL the realtime service calls to verify customer-group
+  // membership for group chat (reuses GET /api/v1/customer-groups/:id).
+  BACKEND_BASE_URL: z.string().optional(),
+
   // Chat persistence (TypeORM/Postgres). Dev sets DB_SYNC=true; prod uses
   // migrations with DB_SYNC unset/false. Required in prod (see validateEnv).
   DB_HOST: z.string().optional(),
@@ -49,7 +53,7 @@ export function validateEnv(config: Record<string, unknown>): Env {
 
   const env = result.data;
   if ((env.NODE_ENV ?? 'development') === 'production') {
-    for (const key of ['REDIS_URL', 'JWKS_URI'] as const) {
+    for (const key of ['REDIS_URL', 'JWKS_URI', 'BACKEND_BASE_URL'] as const) {
       if (!env[key]) {
         throw new Error(
           `Invalid environment configuration: ${key} must be set in production`,

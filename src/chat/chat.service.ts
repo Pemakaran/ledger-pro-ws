@@ -1,9 +1,15 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { ChatRepository } from '@chat/chat.repository';
+import { GroupMembershipVerifier } from '@chat/group-membership.verifier';
 import { Conversation } from '@chat/entities/conversation.entity';
 import { ConversationParticipant } from '@chat/entities/conversation-participant.entity';
 import { Message } from '@chat/entities/message.entity';
 import type { ConversationType } from '@chat/enums/conversation-type.enum';
+import type { AttachmentInput } from '@chat/schema/attachment.schema';
 
 interface CreateConversationInput {
   type: ConversationType;
@@ -16,11 +22,17 @@ interface CreateConversationInput {
  * Chat domain logic. Every read/write is gated on participant membership —
  * {@link assertParticipant} is the single authorization check the gateway and
  * the REST controller both go through, so a non-member can never read history
- * or post a message.
+ * or post a message. For group chat, {@link openGroupConversation} first
+ * verifies customer-group membership with the backend, then find-or-creates the
+ * group's conversation and enrolls the caller; thereafter the same participant
+ * gate applies.
  */
 @Injectable()
 export class ChatService {
-  constructor(private readonly repo: ChatRepository) {}
+  constructor(
+    private readonly repo: ChatRepository,
+    private readonly membership: GroupMembershipVerifier,
+  ) {}
 
   /** Create a conversation; the actor is always included (as the admin). */
   createConversation(
@@ -38,6 +50,23 @@ export class ChatService {
 
   listConversations(actorId: string): Promise<Conversation[]> {
     return this.repo.findConversationsForUser(actorId);
+  }
+
+  /**
+   * Open (find-or-create) the chat for a customer-group, after verifying the
+   * caller belongs to it. Idempotent — repeated opens reuse the same
+   * conversation and re-confirm membership (a removed member gets 403).
+   */
+  async openGroupConversation(
+    actorId: string,
+    groupId: string,
+    bearerToken: string,
+  ): Promise<Conversation> {
+    const isMember = await this.membership.verify(groupId, bearerToken);
+    if (!isMember) {
+      throw new ForbiddenException('Not a member of this group');
+    }
+    return this.repo.findOrCreateGroupConversation(groupId, actorId);
   }
 
   /** Returns the membership, or throws Forbidden if the user isn't in it. */
@@ -66,9 +95,13 @@ export class ChatService {
     actorId: string,
     conversationId: string,
     body: string,
+    attachments: AttachmentInput[] = [],
   ): Promise<Message> {
+    if (body.trim().length === 0 && attachments.length === 0) {
+      throw new BadRequestException('A message needs text or an attachment');
+    }
     await this.assertParticipant(conversationId, actorId);
-    return this.repo.saveMessage(conversationId, actorId, body);
+    return this.repo.saveMessage(conversationId, actorId, body, attachments);
   }
 
   async markRead(actorId: string, conversationId: string): Promise<void> {

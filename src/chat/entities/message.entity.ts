@@ -5,9 +5,11 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Conversation } from '@chat/entities/conversation.entity';
+import { MessageAttachment } from '@chat/entities/message-attachment.entity';
 
 @Entity('chat_messages')
 // Paginating history reads (conversation_id, created_at DESC).
@@ -28,6 +30,11 @@ export class Message {
 
   @Column({ type: 'text' })
   body!: string;
+
+  @OneToMany(() => MessageAttachment, (attachment) => attachment.message, {
+    cascade: ['insert'],
+  })
+  attachments!: MessageAttachment[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

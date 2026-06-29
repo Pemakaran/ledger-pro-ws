@@ -63,11 +63,13 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection {
     @ConnectedSocket() client: AuthedSocket,
     @MessageBody() data: unknown,
   ): Promise<{ ok: true; id: string }> {
-    const { conversationId, body } = chatMessagePayloadSchema.parse(data);
+    const { conversationId, body, attachments } =
+      chatMessagePayloadSchema.parse(data);
     const message = await this.chat.postMessage(
       client.data.user.sub,
       conversationId,
       body,
+      attachments ?? [],
     );
     this.server.to(roomFor(conversationId)).emit('chat:message', message);
     return { ok: true, id: message.id };
