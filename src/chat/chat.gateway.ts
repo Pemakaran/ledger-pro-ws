@@ -13,7 +13,12 @@ import { JwksVerifierService } from '@common/auth/jwks-verifier.service';
 import { createWsAuthMiddleware } from '@common/auth/ws-auth.middleware';
 import type { AuthedSocket } from '@common/auth/authed-socket.type';
 import { ChatService } from '@chat/chat.service';
-import { chatMessagePayloadSchema, conversationRefSchema } from '@chat/schema';
+import {
+  chatEditPayloadSchema,
+  chatMessagePayloadSchema,
+  conversationRefSchema,
+  messageRefSchema,
+} from '@chat/schema';
 
 const roomFor = (conversationId: string): string =>
   `conversation:${conversationId}`;
@@ -102,6 +107,39 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection {
       userId: client.data.user.sub,
       lastReadAt: lastReadAt.toISOString(),
     });
+  }
+
+  @SubscribeMessage('chat:edit')
+  async onEdit(
+    @ConnectedSocket() client: AuthedSocket,
+    @MessageBody() data: unknown,
+  ): Promise<{ ok: true }> {
+    const { messageId, body } = chatEditPayloadSchema.parse(data);
+    const message = await this.chat.editMessage(
+      client.data.user.sub,
+      messageId,
+      body,
+    );
+    this.server
+      .to(roomFor(message.conversationId))
+      .emit('chat:message-updated', message);
+    return { ok: true };
+  }
+
+  @SubscribeMessage('chat:delete')
+  async onDelete(
+    @ConnectedSocket() client: AuthedSocket,
+    @MessageBody() data: unknown,
+  ): Promise<{ ok: true }> {
+    const { messageId } = messageRefSchema.parse(data);
+    const message = await this.chat.deleteMessage(
+      client.data.user.sub,
+      messageId,
+    );
+    this.server
+      .to(roomFor(message.conversationId))
+      .emit('chat:message-deleted', message);
+    return { ok: true };
   }
 
   /**

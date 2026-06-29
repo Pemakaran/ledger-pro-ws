@@ -231,4 +231,39 @@ export class ChatRepository {
       { lastReadAt: at },
     );
   }
+
+  findMessageById(messageId: string): Promise<Message | null> {
+    return this.messages.findOne({
+      where: { id: messageId },
+      relations: { attachments: true },
+    });
+  }
+
+  /** Replace a message's body and stamp editedAt; returns the reloaded row. */
+  async updateMessageBody(messageId: string, body: string): Promise<Message> {
+    await this.messages.update(
+      { id: messageId },
+      { body, editedAt: new Date() },
+    );
+    return this.messages.findOneOrFail({
+      where: { id: messageId },
+      relations: { attachments: true },
+    });
+  }
+
+  /** Soft-delete: blank the body, drop attachment rows, stamp deletedAt. */
+  async softDeleteMessage(messageId: string): Promise<Message> {
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(MessageAttachment, { messageId });
+      await manager.update(
+        Message,
+        { id: messageId },
+        { body: '', deletedAt: new Date() },
+      );
+    });
+    return this.messages.findOneOrFail({
+      where: { id: messageId },
+      relations: { attachments: true },
+    });
+  }
 }

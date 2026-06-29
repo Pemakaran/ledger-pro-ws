@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { ChatRepository } from '@chat/chat.repository';
 import { GroupMembershipVerifier } from '@common/membership/group-membership.verifier';
@@ -118,5 +119,48 @@ export class ChatService {
   ): Promise<ConversationParticipant[]> {
     await this.assertParticipant(conversationId, actorId);
     return this.repo.listParticipants(conversationId);
+  }
+
+  /**
+   * Edit a message's text. Only the sender may edit, only while still a
+   * participant, and not after it was deleted.
+   */
+  async editMessage(
+    actorId: string,
+    messageId: string,
+    body: string,
+  ): Promise<Message> {
+    const message = await this.repo.findMessageById(messageId);
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+    if (message.senderId !== actorId) {
+      throw new ForbiddenException('You can only edit your own messages');
+    }
+    await this.assertParticipant(message.conversationId, actorId);
+    if (message.deletedAt) {
+      throw new BadRequestException('Cannot edit a deleted message');
+    }
+    if (body.trim().length === 0) {
+      throw new BadRequestException('A message needs text');
+    }
+    return this.repo.updateMessageBody(messageId, body.trim());
+  }
+
+  /**
+   * Soft-delete a message (sender-only, still a participant). The body is
+   * blanked and attachments dropped; the row stays so the thread keeps a
+   * tombstone.
+   */
+  async deleteMessage(actorId: string, messageId: string): Promise<Message> {
+    const message = await this.repo.findMessageById(messageId);
+    if (!message) {
+      throw new NotFoundException('Message not found');
+    }
+    if (message.senderId !== actorId) {
+      throw new ForbiddenException('You can only delete your own messages');
+    }
+    await this.assertParticipant(message.conversationId, actorId);
+    return this.repo.softDeleteMessage(messageId);
   }
 }

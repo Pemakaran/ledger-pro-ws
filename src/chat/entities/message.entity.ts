@@ -38,4 +38,10 @@ export class Message {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
+
+  @Column({ type: 'timestamptz', name: 'edited_at', nullable: true })
+  editedAt!: Date | null;
+
+  @Column({ type: 'timestamptz', name: 'deleted_at', nullable: true })
+  deletedAt!: Date | null;
 }

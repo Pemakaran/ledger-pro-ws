@@ -17,3 +17,16 @@ export const chatMessagePayloadSchema = conversationRefSchema.extend({
     .optional(),
 });
 export type ChatMessagePayload = z.infer<typeof chatMessagePayloadSchema>;
+
+/** Inbound `chat:edit` payload — replace a message's text. */
+export const chatEditPayloadSchema = z.object({
+  messageId: z.string().uuid(),
+  body: z.string().min(1).max(4000),
+});
+export type ChatEditPayload = z.infer<typeof chatEditPayloadSchema>;
+
+/** Inbound /chat payload identifying a single message (delete). */
+export const messageRefSchema = z.object({
+  messageId: z.string().uuid(),
+});
+export type MessageRef = z.infer<typeof messageRefSchema>;
