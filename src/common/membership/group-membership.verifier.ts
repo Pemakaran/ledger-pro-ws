@@ -40,7 +40,13 @@ export class GroupMembershipVerifier {
     }
 
     if (response.ok) {
-      return true;
+      // Archiving a group keeps its member rows, so a 200 alone isn't enough:
+      // treat an archived group as "not a member" so an archived (or revoked)
+      // chat can't be re-opened.
+      const body: unknown = await response.json().catch(() => null);
+      const status = (body as { data?: { status?: string } } | null)?.data
+        ?.status;
+      return status !== 'archived';
     }
     if (response.status === 403 || response.status === 404) {
       return false;

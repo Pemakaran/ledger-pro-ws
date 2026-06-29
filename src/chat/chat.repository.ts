@@ -116,7 +116,7 @@ export class ChatRepository {
     }
   }
 
-  private findGroupByReference(groupId: string): Promise<Conversation | null> {
+  findGroupByReference(groupId: string): Promise<Conversation | null> {
     return this.conversations.findOne({
       where: { type: 'group', referenceId: groupId },
     });
@@ -140,6 +140,28 @@ export class ChatRepository {
     userId: string,
   ): Promise<ConversationParticipant | null> {
     return this.participants.findOne({ where: { conversationId, userId } });
+  }
+
+  /** All user ids participating in a conversation (read before a bulk prune). */
+  async findParticipantUserIds(conversationId: string): Promise<string[]> {
+    const rows = await this.participants.find({
+      where: { conversationId },
+      select: { userId: true },
+    });
+    return rows.map((r) => r.userId);
+  }
+
+  /** Remove one participant (revocation); a no-op if the row is already gone. */
+  async deleteParticipant(
+    conversationId: string,
+    userId: string,
+  ): Promise<void> {
+    await this.participants.delete({ conversationId, userId });
+  }
+
+  /** Remove every participant of a conversation (group archived). */
+  async deleteAllParticipants(conversationId: string): Promise<void> {
+    await this.participants.delete({ conversationId });
   }
 
   /** Conversations the user belongs to, most-recently-joined first. */

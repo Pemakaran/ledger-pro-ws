@@ -98,4 +98,20 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection {
       .to(roomFor(conversationId))
       .emit('chat:read', { conversationId, userId: client.data.user.sub });
   }
+
+  /**
+   * Eject a user from a group's chat (called by the control consumer after the
+   * backend revokes membership): drop their live sockets from the conversation
+   * room (/chat) and the group room (/notifications), then signal their client
+   * to tear down. The participant row is pruned separately, so a reconnect or a
+   * replay also fails the membership gate.
+   */
+  revoke(userId: string, conversationId: string, groupId: string): void {
+    const userRoom = `user:${userId}`;
+    const notifications = this.server.server.of('/notifications');
+    this.server.in(userRoom).socketsLeave(roomFor(conversationId));
+    notifications.in(userRoom).socketsLeave(`group:${groupId}`);
+    this.server.to(userRoom).emit('chat:revoked', { conversationId, groupId });
+    notifications.to(userRoom).emit('group:revoked', { groupId });
+  }
 }

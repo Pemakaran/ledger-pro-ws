@@ -11,6 +11,7 @@ import { ChatRepository } from '@chat/chat.repository';
 import { ChatService } from '@chat/chat.service';
 import { ChatController } from '@chat/chat.controller';
 import { ChatGateway } from '@chat/chat.gateway';
+import { ChatControlConsumer } from '@chat/chat-control.consumer';
 
 /**
  * Chat domain — persistence (entities + repository), logic (service), and both
@@ -31,7 +32,13 @@ import { ChatGateway } from '@chat/chat.gateway';
     ]),
   ],
   controllers: [ChatController],
-  providers: [ChatRepository, ChatService, ChatGateway, JwksAuthGuard],
+  providers: [
+    ChatRepository,
+    ChatService,
+    ChatGateway,
+    ChatControlConsumer,
+    JwksAuthGuard,
+  ],
   exports: [ChatService],
 })
 export class ChatModule {}
