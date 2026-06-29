@@ -10,7 +10,7 @@ import type { Namespace } from 'socket.io';
 import { JwksVerifierService } from '@common/auth/jwks-verifier.service';
 import { createWsAuthMiddleware } from '@common/auth/ws-auth.middleware';
 import type { AuthedSocket } from '@common/auth/authed-socket.type';
-import type { RealtimeNamespace } from '@common/contract/realtime-event.type';
+import type { RealtimeNamespace } from '@common/schema';
 
 /**
  * The `/notifications` namespace: per-user notifications + system-alert

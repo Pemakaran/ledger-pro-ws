@@ -11,9 +11,10 @@ import { REDIS_CLIENT } from '@common/redis/redis.constants';
 import { RealtimeGateway } from '@realtime/realtime.gateway';
 import {
   REALTIME_CHANNEL,
+  realtimeEnvelopeSchema,
   targetRoom,
   type RealtimeEnvelope,
-} from '@common/contract/realtime-event.type';
+} from '@common/schema';
 
 /**
  * Subscribes to the backend's Redis channel and fans each envelope out to the
@@ -75,31 +76,18 @@ export class RealtimeSubscriber implements OnModuleInit, OnModuleDestroy {
   }
 
   private parse(raw: string): RealtimeEnvelope | null {
-    let parsed: unknown;
+    let json: unknown;
     try {
-      parsed = JSON.parse(raw);
+      json = JSON.parse(raw);
     } catch {
       this.logger.warn('Dropped malformed realtime envelope (invalid JSON)');
       return null;
     }
-    if (!this.isEnvelope(parsed)) {
+    const result = realtimeEnvelopeSchema.safeParse(json);
+    if (!result.success) {
       this.logger.warn('Dropped realtime envelope with unexpected shape');
       return null;
     }
-    return parsed;
-  }
-
-  private isEnvelope(value: unknown): value is RealtimeEnvelope {
-    if (typeof value !== 'object' || value === null) {
-      return false;
-    }
-    const e = value as Record<string, unknown>;
-    return (
-      e.v === 1 &&
-      typeof e.event === 'string' &&
-      typeof e.namespace === 'string' &&
-      typeof e.target === 'object' &&
-      e.target !== null
-    );
+    return result.data;
   }
 }

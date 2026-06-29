@@ -1,4 +1,4 @@
-import { validateEnv } from '@common/config/env.validation';
+import { validateEnv } from '@common/schema';
 
 describe('validateEnv', () => {
   it('accepts a minimal dev config', () => {
